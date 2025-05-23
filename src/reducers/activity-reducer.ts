@@ -1,16 +1,25 @@
 import type { Activity } from "../types";
 
-type ActivityState = {
-    activities: Activity[]
+export type ActivityState = {
+    activities: Activity[],
+    activeId: Activity['id']
 }
 
-export type ActivityActions = {
-    type: 'save-activity',
-    payload: { newActivity: Activity }
+export type ActivityActions =
+    { type: 'save-activity', payload: { newActivity: Activity } } |
+    { type: 'set-activeId', payload: { id: Activity['id'] } } |
+    { type: 'delete-activity', payload: { id: Activity['id'] } } |
+    { type: 'restart-app' }
+
+const localStorageActivities = (): Activity[] => {
+    const activities = localStorage.getItem('activities')
+    return activities ? JSON.parse(activities) : []
+
 }
 
 export const initialState: ActivityState = {
-    activities: []
+    activities: localStorageActivities(),
+    activeId: ''
 }
 
 export const activityReducer = (
@@ -19,9 +28,42 @@ export const activityReducer = (
 ) => {
 
     if (actions.type === 'save-activity') {
+
+        let updatedActivities: Activity[] = []
+        if (state.activeId) {
+            updatedActivities = state.activities.map(activity => activity.id === state.activeId ? actions.payload.newActivity : activity)
+
+        } else {
+            updatedActivities = [...state.activities, actions.payload.newActivity]
+
+        }
+
         return {
             ...state,
-            activities: [...state.activities, actions.payload.newActivity]
+            activities: updatedActivities,
+            activeId: ''
+        }
+    }
+
+    if (actions.type === 'set-activeId') {
+        return {
+            ...state,
+            activeId: actions.payload.id
+        }
+    }
+
+    if (actions.type === 'delete-activity') {
+
+        return {
+            ...state,
+            activities: state.activities.filter(activity => activity.id !== actions.payload.id),
+        }
+    }
+
+    if (actions.type === 'restart-app') {
+        return {
+            activities: [],
+            activeId: ''
         }
     }
 
